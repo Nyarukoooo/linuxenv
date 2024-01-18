@@ -1,0 +1,54 @@
+#!/bin/bash
+#default time zone = UTC+8
+calculate_remaining_time(){
+	local target_time=$1
+	local current_time=$2
+	local next_time=$3
+
+	local seconds_left=$(( target_time - current_time ))
+	local hours=$(( seconds_left / 3600 ))
+	local minutes=$(( (seconds_left % 3600) / 60 ))
+	local seconds=$(( seconds_left  % 60 ))
+	
+	printf "Next %s in \e[1;32m%s\e[0m hours \e[1;32m%s\e[0m minutes \e[1;32m%s\e[0m seconds\n"\
+		"$next_time" "$hours" "$minutes" "$seconds"
+}
+
+# 获取当前时间
+current_time=$(TZ='America/New_York' date +%s)
+today_date=$(TZ='America/New_York' date +%u)
+
+# 定义目标时间 
+ny_open=$(TZ='America/New_York' date -v9H -v30M -v0S +%s)
+ny_close=$(TZ='America/New_York' date -v16H -v0M -v0S +%s) 
+daily_close=$(TZ='America/New_York' date -v19H -v0M -v0S +%s)
+next_ny_open=$(TZ='America/New_York' date -v+1d -v9H -v30M -v0S +%s)
+next_daily_close=$(TZ='America/New_York' date -v+1d -v19H -v0M -v0S +%s)
+
+if (( today_date >= 1 && today_date <= 5 )); then
+
+	if ((  current_time <= ny_open )); then
+		calculate_remaining_time  "$ny_open" "$current_time" "New York Open"
+	elif (( ny_open < current_time && current_time <= ny_close )); then 
+		calculate_remaining_time "$ny_close" "$current_time" "New York Close"
+		calculate_remaining_time "$daily_close" "$current_time" "Daily Close" 
+	elif (( ny_close < current_time && current_time <= daily_close)); then 
+		calculate_remaining_time "$next_ny_open" "$current_time" "New York Open"
+		calculate_remaining_time "$daily_close" "$current_time" "Daily Close" 
+	elif (( daily_close < current_time && current_time <= next_ny_open)); then 
+		calculate_remaining_time "$next_ny_open" "$current_time" "New York Open"
+	else
+    		echo "something wrong here."
+	fi
+else 
+	if (( current_time < daily_close )); then
+		calculate_remaining_time "$daily_close" "$current_time" "Daily Close" 
+	else
+   		calculate_remaining_time "$next_daily_close" "$current_time" "Daily Close"
+	fi
+fi
+
+
+
+
+

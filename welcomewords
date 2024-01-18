@@ -1,0 +1,6 @@
+#!/bin/bash
+welcome="Time is money"
+words="work for trading"
+say "${welcome} ${words}" & figlet -k  ${welcome} | lolcat
+countdown9
+ccp
