@@ -5,6 +5,5 @@ figlet -k -w 150  Song The Later Bloomer | lolcat
 say -r 200 --input-file=${quote_path} & cat ${quote_path} | lolcat -a -s 15 -d 40
 #echo -e "\n\e[1;3;31mDaily Plan\e[0m\n"
 #cat ${schedule_path}
-#!/bin/bash
 
 
