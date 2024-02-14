@@ -36,7 +36,7 @@ ccp
 * 显示BTC, ETH和BNB的当前价格信息:
 
 ```
-ccp BBTC ETH BNB
+ccp BTC ETH BNB
 ```
 
 * 将 ADA 和 DOT 添加到观察列表中:
