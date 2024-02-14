@@ -35,6 +35,20 @@ WHERE username = '${uid}';"
 
 see_all="SELECT * FROM config;"
 
+#环境检测
+check_env(){
+	if ! command -v brew &> /dev/null; then
+		printf "\e[1:31mDetected Homebrew is not installed, starting installation of Homebrew...\e[0m"
+		/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+		printf "\e[1:31mCurrent brew version: $(brew --version)\e[0m"
+	fi
+	if ! command -v psql &> /dev/null; then
+    		printf "\e[1:31mDetected PostgreSQL is not installed，starting installation of PostgreSQL....\e[0m"
+		brew install postgresql
+		printf "\e[1:31mCurrent PostgreSQL version: $(psql --version)\e[0m"
+	fi
+}
+
 #query function
 postsql(){
 	local query=$1
@@ -287,6 +301,7 @@ check_error(){
 }
 
 main(){
+	check_env
 	parse_params "$@"
 	symbol_param=$(echo "$tokens" | jq -nRr --arg tokens "$tokens" '$tokens | split(",") | map(@uri) | join(",")')
 	price_response=$(price_request $symbol_param)
