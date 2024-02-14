@@ -1,8 +1,53 @@
 #!/bin/bash
-CRYPTOLIST_CONFIG_FILE="$HOME/wxsbin/cryptolist/.cryptolist_config"
-SCRIPT_NAME=$(basename "$0")
+#ccp config 配置变量能不能放另外一个脚本？
+API_KEY="9bfccd68-739b-43d9-81e7-6c18fa85cce8"
 DEFAULT_INTERVALS="1h,24h,7d,30d"
-API_KEY="f626d1df-7908-44b0-bfa9-d9a068fdb692"
+SCRIPT_NAME=$(basename "$0")
+#database config
+HOST="118.31.51.60"
+PORT="5432"
+DB_NAME="ccp_watchlist"
+DB_USER="postgres"
+DB_PASSWORD="0703"
+uid=$(whoami)
+#query
+add_user="
+INSERT INTO config(username, watchlist) 
+VALUES('${uid}', 'BTC,ETH,BNB');"
+
+check_user="
+SELECT username 
+FROM config 
+WHERE username = '${uid}';"
+
+check_watchlist="
+SELECT watchlist
+FROM config
+WHERE username = '${uid}';"
+
+update_watchlist="
+UPDATE config 
+SET watchlist = '${tokens}' 
+WHERE username = '${uid}';"
+
+see_all="SELECT * FROM config;"
+
+#query function
+postsql(){
+	local query=$1
+	PGPASSWORD=${DB_PASSWORD} psql -X -A -t -U ${DB_USER} -h ${HOST} -p ${PORT} -d ${DB_NAME}<<EOF
+${query}
+EOF
+}
+
+add_token(){
+	local token=$1
+	PGPASSWORD=${DB_PASSWORD} psql -U ${DB_USER} -h ${HOST} -p ${PORT} -d ${DB_NAME}<<EOF
+UPDATE config 
+SET watchlist = '${token}'
+WHERE username = '${uid}'
+EOF
+}
 helper(){
     printf "Usage: \e[1;34m%s [-s -a -d <tokens>] [-h]\e[0m\n" "$SCRIPT_NAME"
     echo "  -s <tokens>: Specify tokens to watch (comma-separated)"
@@ -34,41 +79,30 @@ set_title(){
 		"Token" "Rank" "Price" "${percent_change_title}"
 }
 
-create_config(){
-	printf "Cryptolist config file doesn't exist.\nCreating new config file. File Path: \e[1;34m$CRYPTOLIST_CONFIG_FILE\e[0m\n"
-	touch $CRYPTOLIST_CONFIG_FILE
+
+check_user_exist(){
+	if [[ $(postsql "${check_user}") != ${uid} ]]; then
+		postsql "${add_user}" > /dev/null
+		printf "Cannot found user \e[1:34m${uid}\e[0m.\nCreating new user as \e[1:34m${uid}\e[0m."
+		printf "Creating Default Watchlist: \e[1;32mBTC, ETH, BNB\e[0m\n"
+	fi
 }
 
 save_to_config(){
-	if [[ -f "$CRYPTOLIST_CONFIG_FILE" ]]; then
-		echo "$tokens" > "$CRYPTOLIST_CONFIG_FILE"
-	else 
-		create_config
-		echo "$tokens" > "$CRYPTOLIST_CONFIG_FILE"
-	fi
-	printf "Watchlist updated: \e[1;34m$tokens\e[0m\n"
+	check_user_exist
+	add_token "${tokens}" > /dev/null
+	printf "Watchlist updated: \e[1;34m$tokens\e[0m"
 }
+
 
 read_from_config(){
-	if [[ -f "$CRYPTOLIST_CONFIG_FILE" ]]; then
-		tokens=$(cat "$CRYPTOLIST_CONFIG_FILE")
-	else
-		create_config
-		echo "BTC,ETH,BNB" > $CRYPTOLIST_CONFIG_FILE
-		printf "Default watchlist: \e[1;32mBTC,ETH,BNB\e[0m\nYou can create new watchlist by using [-s] following tokens you want to watch\n"
-		tokens=$(cat "$CRYPTOLIST_CONFIG_FILE")
+	check_user_exist
+	tokens=$(postsql "${check_watchlist}")
+	if [[ ! $tokens ]]; then
+		printf "Your watchlist is empty.\nAdding default watchlist: \e[1;34mBTC, ETH, BNB\e[0m"
+		add_token "BTC,ETH,BNB" > /dev/null
 	fi
-}
-
-add_to_config(){
-	read_from_config
-	local add_list=($@)
-	IFS=',' read -ra tokens_list <<< "${tokens}"
-	
-	#合并config中的token和输入的token，并且去重排序
-	merged_list=($(echo "${add_list[@]}" " ${tokens_list[@]}" | tr ' ' '\n' | sort -u))
-	tokens=$(convert2API_format ${merged_list[@]})
-	save_to_config
+	tokens=$(postsql "$check_watchlist")
 }
 
 delete_from_config(){
