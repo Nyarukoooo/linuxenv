@@ -1,8 +1,10 @@
 #!/bin/bash
+
 #ccp config 配置变量能不能放另外一个脚本？
 API_KEY="9bfccd68-739b-43d9-81e7-6c18fa85cce8"
 DEFAULT_INTERVALS="1h,24h,7d,30d"
 SCRIPT_NAME=$(basename "$0")
+
 #database config
 HOST="118.31.51.60"
 PORT="5432"
@@ -10,6 +12,7 @@ DB_NAME="ccp_watchlist"
 DB_USER="postgres"
 DB_PASSWORD="0703"
 uid=$(whoami)
+
 #query
 add_user="
 INSERT INTO config(username, watchlist) 
@@ -83,7 +86,7 @@ set_title(){
 check_user_exist(){
 	if [[ $(postsql "${check_user}") != ${uid} ]]; then
 		postsql "${add_user}" > /dev/null
-		printf "Cannot found user \e[1:34m${uid}\e[0m.\nCreating new user as \e[1:34m${uid}\e[0m."
+		printf "Cannot found user \e[1:34m${uid}\e[0m.\nCreating new user as \e[1:34m${uid}\e[0m.\n"
 		printf "Creating Default Watchlist: \e[1;32mBTC, ETH, BNB\e[0m\n"
 	fi
 }
@@ -91,7 +94,7 @@ check_user_exist(){
 save_to_config(){
 	check_user_exist
 	add_token "${tokens}" > /dev/null
-	printf "Watchlist updated: \e[1;34m$tokens\e[0m"
+	printf "Watchlist updated: \e[1;34m$tokens\e[0m\n"
 }
 
 
@@ -99,10 +102,21 @@ read_from_config(){
 	check_user_exist
 	tokens=$(postsql "${check_watchlist}")
 	if [[ ! $tokens ]]; then
-		printf "Your watchlist is empty.\nAdding default watchlist: \e[1;34mBTC, ETH, BNB\e[0m"
+		printf "Your watchlist is empty.\nAdding default watchlist: \e[1;34mBTC, ETH, BNB\e[0m\n"
 		add_token "BTC,ETH,BNB" > /dev/null
 	fi
 	tokens=$(postsql "$check_watchlist")
+}
+
+add_to_config(){
+	read_from_config
+	local add_list=($@)
+	IFS=',' read -ra tokens_list <<< "${tokens}"
+	
+	#合并config中的token和输入的token，并且去重排序
+	merged_list=($(echo "${add_list[@]}" " ${tokens_list[@]}" | tr ' ' '\n' | sort -u))
+	tokens=$(convert2API_format ${merged_list[@]})
+	save_to_config
 }
 
 delete_from_config(){
