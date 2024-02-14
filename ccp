@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#ccp config 配置变量能不能放另外一个脚本？
+#ccp config 
 API_KEY="9bfccd68-739b-43d9-81e7-6c18fa85cce8"
 DEFAULT_INTERVALS="1h,24h,7d,30d"
 SCRIPT_NAME=$(basename "$0")
@@ -51,6 +51,8 @@ SET watchlist = '${token}'
 WHERE username = '${uid}'
 EOF
 }
+
+#functions
 helper(){
     printf "Usage: \e[1;34m%s [-s -a -d <tokens>] [-h]\e[0m\n" "$SCRIPT_NAME"
     echo "  -s <tokens>: Specify tokens to watch (comma-separated)"
